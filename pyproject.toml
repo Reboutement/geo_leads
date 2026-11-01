@@ -1,0 +1,15 @@
+[build-system]
+requires = ["flit_core >=3.4,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "geo_leads"
+authors = [{ name = "Geo Engineering", email = "contact@geo-engineering35.com" }]
+description = "Reception des demandes de la landing Geo Engineering dans Frappe CRM"
+requires-python = ">=3.10"
+readme = "README.md"
+dynamic = ["version"]
+dependencies = []
+
+[tool.bench.frappe-dependencies]
+frappe = ">=15.0.0,<16.0.0"
