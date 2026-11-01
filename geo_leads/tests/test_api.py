@@ -19,3 +19,8 @@ class TestHelpers(FrappeTestCase):
         self.assertIn("Type de demande : audit", notes)
         self.assertIn("Symptomes : Buee", notes)
         self.assertNotIn("Message", notes)
+
+    def test_notes_include_commercial_and_summary(self):
+        notes = api._build_notes({"commercial": "Marc", "summary": "HR 68 %"})
+        self.assertIn("Commercial : Marc", notes)
+        self.assertIn("Résumé de la visite : HR 68 %", notes)

@@ -12,7 +12,9 @@ from frappe import _
 from frappe.rate_limiter import rate_limit
 
 MAX_TEXT = 1000
-ALLOWED_SOURCES = {"landing-audit", "widget", "agent-ia"}
+ALLOWED_SOURCES = {"landing-audit", "widget", "agent-ia", "outil-visite"}
+# Les demandes de l'outil de visite viennent des commerciaux, chez le client : prospects chauds.
+HOT_SOURCES = {"outil-visite"}
 PHONE_RE = re.compile(r"[^\d+]")
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -43,8 +45,21 @@ def _build_notes(d):
         ("Code postal", _clean(d.get("zip"), 10)),
         ("Message", _clean(d.get("note"))),
         ("Page", _clean(d.get("page"), 300)),
+        ("Commercial", _clean(d.get("commercial"), 80)),
+        ("Résumé de la visite", _clean(d.get("summary"), 4000)),
     ]
     return "\n".join(f"{label} : {value}" for label, value in lines if value)
+
+
+def _ensure_source(source):
+    """Cree la source de lead si le CRM la gere et qu'elle n'existe pas encore."""
+    if not frappe.db.exists("DocType", "CRM Lead Source"):
+        return False
+    if not frappe.db.exists("CRM Lead Source", source):
+        frappe.get_doc({"doctype": "CRM Lead Source", "source_name": source}).insert(
+            ignore_permissions=True
+        )
+    return True
 
 
 def _add_comment(lead_name, content):
@@ -82,6 +97,8 @@ def create_lead():
         source = "landing-audit"
 
     notes = _build_notes(d)
+    if source in HOT_SOURCES:
+        notes = "Température : CHAUD (prospect rencontré par un commercial)\n" + notes
 
     # Meme telephone deja connu : on complete la fiche au lieu d'en creer une seconde.
     existing = frappe.db.get_value("CRM Lead", {"mobile_no": phone}, "name")
@@ -97,7 +114,7 @@ def create_lead():
         "mobile_no": phone,
         "email": email,
     }
-    if frappe.db.exists("CRM Lead Source", source):
+    if _ensure_source(source):
         values["source"] = source
 
     lead = frappe.get_doc(values)
